@@ -22,3 +22,7 @@ typedef struct{
 	header head;
 	char data[1000];
 } segment;
+
+int max(int a, int b){
+	return a > b? a : b;
+}
