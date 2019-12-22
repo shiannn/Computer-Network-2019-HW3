@@ -82,6 +82,12 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
             }
         }
     }
+    //flush into file
+    printf("flush\n");
+	for(int i = 0; i < num; i++)
+		fwrite(buf[i].data, 1, buf[i].head.length, fp);
+
+	fclose(fp);
 
     return 0;
 }
