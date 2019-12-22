@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define maxIpLength 100
+#define KiloByte 1024
 
 typedef struct {
 	int length;

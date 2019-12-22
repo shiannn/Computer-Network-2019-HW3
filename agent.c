@@ -110,12 +110,14 @@ int main(int argc, char* argv[]){
         /*Receive message from receiver and sender*/
         memset(&s_tmp, 0, sizeof(s_tmp));
         segment_size = recvfrom(agentsocket, &s_tmp, sizeof(s_tmp), 0, (struct sockaddr *)&tmp_addr, &tmp_size);
+        printf("segment size == %d\n",segment_size); // mine
         if(segment_size > 0){
             inet_ntop(AF_INET, &tmp_addr.sin_addr.s_addr, ipfrom, sizeof(ipfrom));
             portfrom = ntohs(tmp_addr.sin_port);
 
             if(strcmp(ipfrom, ip[0]) == 0 && portfrom == port[0]) {
                 /*segment from sender, not ack*/
+                printf("segment from sender\n"); // mine
                 if(s_tmp.head.ack) {
                     fprintf(stderr, "收到來自 sender 的 ack segment\n");
                     exit(1);
