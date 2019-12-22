@@ -74,6 +74,11 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 		//更新已經完成送出的sequence number到哪裡了
 		send_max_seq = max(window_upper_bound, send_max_seq);
 		//更新window size
+		int old_winsize = winsize;
+		if(winsize < threshold)
+			winsize *= 2;
+		else
+			winsize++;
 
 		//Receive Ack from receiver
 		while(acked_seq_num != window_upper_bound){
@@ -109,6 +114,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			}
 			else if(ready_for_reading == 0){
 				//timeout, 處理window size
+				threshold = max(old_winsize/2, 1);
+				winsize = 1;
+				printf("time\tout\t\tthreshold = %d\n", threshold);
 				break;
 			}
 			else{
