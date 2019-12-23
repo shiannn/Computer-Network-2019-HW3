@@ -5,9 +5,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
+#include "opencv2/opencv.hpp"
 
 #define maxIpLength 100
-#define KiloByte 1024
+#define KiloByte 1000
 
 typedef struct {
 	int length;

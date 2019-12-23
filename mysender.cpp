@@ -1,6 +1,9 @@
 #include "Myudp_socket.h"
 #define SENDER_PORT 5000
 
+using namespace std;
+using namespace cv;
+
 int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
     // Initialize
 	if(argc != 4){
@@ -13,6 +16,22 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int agent_port = atoi(argv[2]);
 	strcpy(file_path, argv[3]);
 
+/*
+	VideoCapture cap;
+	bool VideoOpen = cap.open(file_path);
+	if(VideoOpen == false){
+		fprintf(stderr,"Video open failed\n");
+		exit(0);
+	}
+	int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+	Mat imgSender = Mat::zeros(height,width, CV_8UC3);
+	
+	cap >> imgSender;
+	printf("width == %d height == %d\n",width,height);
+	imshow("Test",imgSender);
+	waitKey(0);
+*/
     // Open file
 	FILE *fp = fopen(file_path, "r");
 	if(fp == NULL){
@@ -29,6 +48,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	// Initialize window
 	int threshold = 16, winsize = 1, acked_seq_num = 0, result, end = 0;
 	int send_max_seq = 0, last_seq = -1;
+
 
 	while(1){
 		//send packets
@@ -60,7 +80,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			s_tmp.head.syn = 0;
 			s_tmp.head.ack = 0;
 
-			printf("data == %s\n",s_tmp.data);
+			//printf("data == %s\n",s_tmp.data);
 
 			if(send_packet(socket_fd, &s_tmp, &agent)){
 				//如果 i 被迫向回跳(小於曾經到達過的最大處)，就表示正在進行retransmission
@@ -70,7 +90,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 					printf("resnd\tdata\t#%d,\twinSize = %d\n", s_tmp.head.seqNumber, winsize);
 			}
 		}
-
+		//break; 
+		//暫時跳出測試
+	
 		//更新已經完成送出的sequence number到哪裡了
 		send_max_seq = max(window_upper_bound, send_max_seq);
 		//更新window size
@@ -103,8 +125,8 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 
 			// 監控在timeout時間內，[0,socket_fd) 可不可讀
 			struct timeval timeout;
-			timeout.tv_sec = 0;
-			timeout.tv_usec = 100;
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
 			int ready_for_reading = select(socket_fd+1, &input_set, NULL, NULL, &timeout);
 			// select回傳-1表示error，回傳0表示timeout，回傳正數表示ready的fd數量
 			if(ready_for_reading == -1){
@@ -136,6 +158,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 		if(end){
 			break;
 		}
+
 	}
 	
 	//each time read (window size) from file and send
@@ -144,4 +167,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	//and then sender send a fin to receiver
 	//receive finack from receiver
 	//window size means how many packet one time
+
+	return 0;
 }
