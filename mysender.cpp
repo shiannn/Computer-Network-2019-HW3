@@ -4,6 +4,8 @@
 using namespace std;
 using namespace cv;
 
+int FinishFrame = 0;
+
 int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
     // Initialize
 	if(argc != 4){
@@ -79,6 +81,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 				perror("file read error\n");
 				exit(1);
 			}
+			//不應該在result == 0的時候還send
 			printf("result == %d\n",result);
 			s_tmp.head.length = result;
 			s_tmp.head.seqNumber = i;
@@ -98,10 +101,11 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			}
 
 			if(result < KiloByte && result > 0){// End of reading file
-				//當result比較小的時候就表示這是最後一個frame
-				if(0){
+				//當result比較小的時候就表示這是frame的最後一個segment
+				if(FinishFrame == 1){
 					last_seq = i;//last_frame只到第i個
 					//沒有就break
+					printf("FinishFrame==1\n");
 					break;
 				}
 				else{
@@ -124,6 +128,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 
 		//Receive Ack from receiver
 		while(acked_seq_num != window_upper_bound){
+			cout << acked_seq_num << endl;
 			//假設全部都會收到並回覆ack
 			//acked_seq_num++;
 			if(last_seq != -1){//如果last_seq有反應，表示出現了沒有讀到滿的情況
@@ -174,14 +179,28 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 							printf("ackPointer == %d\n",ackPointer);
 							printf("acked_seq_num == %d\n",acked_seq_num);
 							if(acked_seq_num % 1556 == 0){
+								printf("1556!!!\n");
 								cap >> imgSender;
-								memcpy(VideoImagebuffer,imgSender.data, KiloByte);
+								if(imgSender.empty()){
+									cout<< "empty" << endl;
+									FinishFrame = 1;
+									//如果FinishFrame變成1，就不再補位了
+								}
+								else{
+									if(FinishFrame != 1){
+										memcpy(VideoImagebuffer,imgSender.data, KiloByte);
+									}
+								}
 							}
 							else if(acked_seq_num % 1556 == 1555){
-								memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, 200);
+								if(FinishFrame != 1){
+									memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, 200);
+								}
 							}
 							else{
-								memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, KiloByte);
+								if(FinishFrame != 1){
+									memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, KiloByte);
+								}
 							}
 						}
 					}

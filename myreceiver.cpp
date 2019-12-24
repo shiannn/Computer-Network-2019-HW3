@@ -130,6 +130,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
         }
     }
 	
+	/*
     //flush into file
 	for(int i = 0; i < num; i++){
 		memcpy(VideoImagebuffer+offset, buf[i].data, buf[i].head.length);
@@ -141,6 +142,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			waitKey(0);
 		}
 	}
+	*/
 	/*
     printf("flush\n");
 	for(int i = 0; i < num; i++)
