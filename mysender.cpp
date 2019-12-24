@@ -78,16 +78,16 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			int result = imgSize - imgPointer;
 			if(result >= KiloByte){
 				result = KiloByte;
+				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
 			}
 			else if(result < KiloByte && result > 0){
 				//result = result
+				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
 			}
-			else{
-				//result == 0
+			else if(result <= 0){
+				result = 0;
 			}
-			printf("here1 == %d\n",imgPointer);
-			memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
-			printf("here2 == %d\n",imgPointer);
+			printf("result == %d\n",result);
 			if(result < 0){
 				perror("file read error\n");
 				exit(1);

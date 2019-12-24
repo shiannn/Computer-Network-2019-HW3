@@ -1,9 +1,13 @@
 #include "Myudp_socket.h"
 #include <unistd.h>
 
-#define imgSize 1920000
-#define height 800
-#define width 800
+//#define imgSize 1920000
+//#define height 800
+//#define width 800
+
+#define imgSize 1555200
+#define height 540
+#define width 960
 
 #define RECEIVER_PORT 5002
 #define BUFSIZE 32
@@ -52,7 +56,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			printf("num==%d\n",num);
             if(num == BUFSIZE){
                 //buffer滿了，drop掉 (buffer handling)
-				
                 for(int i = 0; i < BUFSIZE; i++){
 					//fwrite(buf[i].data, 1, buf[i].head.length, fp);
 					memcpy(VideoImagebuffer+offset, buf[i].data, buf[i].head.length);
@@ -125,8 +128,19 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
             }
         }
     }
-	/*
+	
     //flush into file
+	for(int i = 0; i < num; i++){
+		memcpy(VideoImagebuffer+offset, buf[i].data, buf[i].head.length);
+		offset += buf[i].head.length;
+		printf("offset == %d\n",offset);
+		if(offset == imgSize){
+			memcpy(imgReceiver.data,VideoImagebuffer,imgSize);
+			imshow("Video", imgReceiver);
+			waitKey(0);
+		}
+	}
+	/*
     printf("flush\n");
 	for(int i = 0; i < num; i++)
 		fwrite(buf[i].data, 1, buf[i].head.length, fp);
