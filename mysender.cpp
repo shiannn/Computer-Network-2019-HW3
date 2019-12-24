@@ -26,19 +26,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	Mat imgSender = Mat::zeros(height,width, CV_8UC3);
-	
-	//printf("width == %d height == %d\n",width,height);
-	//imshow("Test",imgSender);
-	//waitKey(0);
-
-    // Open file
-	/*
-	FILE *fp = fopen(file_path, "r");
-	if(fp == NULL){
-		fprintf(stderr,"file open failed\n");
-		exit(0);
-	}
-	*/
 
     // 建好UDP socket 並且bind 到 INADDR_ANY 上
 	int socket_fd = create_UDP_socket(SENDER_PORT);
@@ -50,11 +37,14 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int threshold = 16, winsize = 1, acked_seq_num = 0, result, end = 0;
 	int send_max_seq = 0, last_seq = -1;
 
+	//假設有兩張frame
 	cap >> imgSender;
 	int imgSize = imgSender.total()*imgSender.elemSize();
 	printf("width==%d height==%d\n",width,height);
 	uchar VideoImagebuffer[imgSize];
 	memcpy(VideoImagebuffer,imgSender.data, imgSize);
+	cap >> imgSender;
+
 	int imgPointer = 0;
 	while(1){
 		//send packets
@@ -69,35 +59,27 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			//每個packet都從file裏面讀出 1KB 的內容
 
 			/*fseek(fp, (i-1)*KiloByte, SEEK_SET);*/
-			imgPointer = (i-1)*KiloByte;
-			printf("imgSize == %d\n",imgSize);
-			printf("imgPointer == %d\n",imgPointer);
+			imgPointer = ((i-1)%1556)*KiloByte;
 			//必須要有這個seek。因為packet loss時可能會需要回來重新傳這段sequence number
 
 			/*result = fread(s_tmp.data, 1, KiloByte, fp);*/
+			int imgSize = 1555200;
+			printf("imgSize == %d\n",imgSize);
+			printf("imgPointer == %d\n",imgPointer);
 			int result = imgSize - imgPointer;
 			if(result >= KiloByte){
 				result = KiloByte;
 				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
 			}
 			else if(result < KiloByte && result > 0){
-				//result = result
+				//last packet of a frame
 				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
 			}
-			else if(result <= 0){
-				result = 0;
-			}
-			printf("result == %d\n",result);
 			if(result < 0){
 				perror("file read error\n");
 				exit(1);
 			}
-			if(result == 0){		// End of reading file
-				last_seq = i-1; //最後的sequence number只到第(i-1)格window cell而已 (因為最後一個read沒有內容不會送出)
-				
-				//end = 1; 假設讀完file就end (其實還要 1.再收回最後一批ack 2.送出fin 3.收回finack)
-				break;
-			}
+			printf("result == %d\n",result);
 			s_tmp.head.length = result;
 			s_tmp.head.seqNumber = i;
 			s_tmp.head.ackNumber = 0;
@@ -113,6 +95,19 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 					printf("send\tdata\t#%d,\twinSize = %d\n", s_tmp.head.seqNumber, winsize);
 				else
 					printf("resnd\tdata\t#%d,\twinSize = %d\n", s_tmp.head.seqNumber, winsize);
+			}
+
+			if(result < KiloByte && result > 0){// End of reading file
+				//當result比較小的時候就表示這是最後一個frame
+				if(0){
+					last_seq = i;//last_frame只到第i個
+					//沒有就break
+					break;
+				}
+				else{
+					//如果還有下一張圖就繼續這個for-loop
+					//現在還不能夠 cap>>imgSender 因為可能還會go-back回來
+				}
 			}
 		}
 		//break; 
@@ -151,7 +146,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			// 監控在timeout時間內，[0,socket_fd) 可不可讀
 			struct timeval timeout;
 			timeout.tv_sec = 0;
-			timeout.tv_usec = 100;
+			timeout.tv_usec = 600;
 			int ready_for_reading = select(socket_fd+1, &input_set, NULL, NULL, &timeout);
 			// select回傳-1表示error，回傳0表示timeout，回傳正數表示ready的fd數量
 			if(ready_for_reading == -1){
@@ -174,6 +169,20 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 						printf("recv\tack\t#%d\n", s_tmp.head.ackNumber);
 						if(s_tmp.head.ackNumber == acked_seq_num + 1){//what we are waiting for
 							acked_seq_num++;//已經被Acked的數量增長
+							//被acked的部份就可以覆蓋掉了
+							int ackPointer = ((acked_seq_num-1)%1556)*KiloByte;
+							printf("ackPointer == %d\n",ackPointer);
+							printf("acked_seq_num == %d\n",acked_seq_num);
+							if(acked_seq_num % 1556 == 0){
+								cap >> imgSender;
+								memcpy(VideoImagebuffer,imgSender.data, KiloByte);
+							}
+							else if(acked_seq_num % 1556 == 1555){
+								memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, 200);
+							}
+							else{
+								memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, KiloByte);
+							}
 						}
 					}
 				}

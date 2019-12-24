@@ -64,7 +64,8 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 					if(offset == imgSize){
 						memcpy(imgReceiver.data,VideoImagebuffer,imgSize);
 						imshow("Video", imgReceiver);
-						waitKey(0);
+						waitKey(3.333);
+						offset = 0;
 					}
 				}
 				if(s_tmp.head.fin == 1){
