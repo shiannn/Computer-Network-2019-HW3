@@ -5,9 +5,9 @@
 //#define height 800
 //#define width 800
 
-#define imgSize 1555200
-#define height 540
-#define width 960
+#define MaximgSize 1555200
+//#define height 540
+//#define width 960
 
 #define RECEIVER_PORT 5002
 #define BUFSIZE 32
@@ -48,12 +48,24 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 
     printf("starting receiving\n");
 
-	Mat imgReceiver = Mat::zeros(height,width, CV_8UC3);
-	uchar VideoImagebuffer[imgSize];
+	int height;
+	int width;
+	int imgSize;
+	//Mat imgReceiver = Mat::zeros(height,width, CV_8UC3);
+	Mat imgReceiver;
+	uchar VideoImagebuffer[MaximgSize];
+	
 	int offset = 0;
     while(1){
         if(recv_packet(socket_fd, &s_tmp, &agent)){
 			printf("num==%d\n",num);
+			if(s_tmp.head.seqNumber == 1){
+				//printf("%s",buf[i].data);
+				sscanf(s_tmp.data,"%d%d",&width,&height);
+				imgSize = width*height*3;
+				imgReceiver = Mat::zeros(height,width, CV_8UC3);
+				printf("%d\n",imgSize);
+			}
             if(num == BUFSIZE){
                 //buffer滿了，drop掉 (buffer handling)
                 for(int i = 0; i < BUFSIZE; i++){
@@ -104,9 +116,12 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
                     s_tmp.head.ackNumber = acked_seq_num;
 
 					printf("recv\tdata\t#%d\n", s_tmp.head.seqNumber);
+					/*
 					for(int i = 0; i < s_tmp.head.length; i++)
 						buf[num].data[i] = s_tmp.data[i];
 					buf[num].head.length = s_tmp.head.length;
+					*/
+					buf[num] = s_tmp;
 					num++;
 				}
 				else{

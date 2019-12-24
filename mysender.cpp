@@ -42,6 +42,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	//假設有兩張frame
 	cap >> imgSender;
 	int imgSize = imgSender.total()*imgSender.elemSize();
+	int mod = (int)ceil(imgSize / (double)KiloByte);
+	printf("mod == %d\n",mod);
+
 	printf("width==%d height==%d\n",width,height);
 	uchar VideoImagebuffer[imgSize];
 	memcpy(VideoImagebuffer,imgSender.data, imgSize);
@@ -57,29 +60,36 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 		//[acked_seq_num + 1, acked_seq_num + winsize] 總共 winsize 個
 		segment s_tmp;
 		for(int i = window_lower_bound; i <= window_upper_bound && !end; i++){
-			//send winsize 個 packet
-			//每個packet都從file裏面讀出 1KB 的內容
-
-			/*fseek(fp, (i-1)*KiloByte, SEEK_SET);*/
-			imgPointer = ((i-1)%1556)*KiloByte;
-			//必須要有這個seek。因為packet loss時可能會需要回來重新傳這段sequence number
-
-			/*result = fread(s_tmp.data, 1, KiloByte, fp);*/
-			int imgSize = 1555200;
-			printf("imgSize == %d\n",imgSize);
-			printf("imgPointer == %d\n",imgPointer);
-			int result = imgSize - imgPointer;
-			if(result >= KiloByte){
+			int result;
+			if(i == 1){
+				sprintf(s_tmp.data,"%d %d",width,height);
 				result = KiloByte;
-				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
 			}
-			else if(result < KiloByte && result > 0){
-				//last packet of a frame
-				memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
-			}
-			if(result < 0){
-				perror("file read error\n");
-				exit(1);
+			else{
+				//send winsize 個 packet
+				//每個packet都從file裏面讀出 1KB 的內容
+
+				/*fseek(fp, (i-1)*KiloByte, SEEK_SET);*/
+				imgPointer = ((i-1)%mod)*KiloByte;
+				//必須要有這個seek。因為packet loss時可能會需要回來重新傳這段sequence number
+
+				/*result = fread(s_tmp.data, 1, KiloByte, fp);*/
+				//int imgSize = 1555200;
+				printf("imgSize == %d\n",imgSize);
+				printf("imgPointer == %d\n",imgPointer);
+				result = imgSize - imgPointer;
+				if(result >= KiloByte){
+					result = KiloByte;
+					memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
+				}
+				else if(result < KiloByte && result > 0){
+					//last packet of a frame
+					memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
+				}
+				if(result < 0){
+					perror("file read error\n");
+					exit(1);
+				}
 			}
 			printf("result == %d\n",result);
 			s_tmp.head.length = result;
