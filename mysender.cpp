@@ -16,7 +16,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int agent_port = atoi(argv[2]);
 	strcpy(file_path, argv[3]);
 
-/*
+
 	VideoCapture cap;
 	bool VideoOpen = cap.open(file_path);
 	if(VideoOpen == false){
@@ -27,17 +27,18 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	Mat imgSender = Mat::zeros(height,width, CV_8UC3);
 	
-	cap >> imgSender;
-	printf("width == %d height == %d\n",width,height);
-	imshow("Test",imgSender);
-	waitKey(0);
-*/
+	//printf("width == %d height == %d\n",width,height);
+	//imshow("Test",imgSender);
+	//waitKey(0);
+
     // Open file
+	/*
 	FILE *fp = fopen(file_path, "r");
 	if(fp == NULL){
 		fprintf(stderr,"file open failed\n");
 		exit(0);
 	}
+	*/
 
     // 建好UDP socket 並且bind 到 INADDR_ANY 上
 	int socket_fd = create_UDP_socket(SENDER_PORT);
@@ -49,7 +50,12 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int threshold = 16, winsize = 1, acked_seq_num = 0, result, end = 0;
 	int send_max_seq = 0, last_seq = -1;
 
-
+	cap >> imgSender;
+	int imgSize = imgSender.total()*imgSender.elemSize();
+	printf("width==%d height==%d\n",width,height);
+	uchar VideoImagebuffer[imgSize];
+	memcpy(VideoImagebuffer,imgSender.data, imgSize);
+	int imgPointer = 0;
 	while(1){
 		//send packets
 		int window_lower_bound = acked_seq_num + 1;
@@ -61,9 +67,28 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 		for(int i = window_lower_bound; i <= window_upper_bound && !end; i++){
 			//send winsize 個 packet
 			//每個packet都從file裏面讀出 1KB 的內容
-			fseek(fp, (i-1)*KiloByte, SEEK_SET);
+
+			/*fseek(fp, (i-1)*KiloByte, SEEK_SET);*/
+			imgPointer = (i-1)*KiloByte;
+			printf("imgSize == %d\n",imgSize);
+			printf("imgPointer == %d\n",imgPointer);
 			//必須要有這個seek。因為packet loss時可能會需要回來重新傳這段sequence number
-			if((result = fread(s_tmp.data, 1, KiloByte, fp)) < 0){
+
+			/*result = fread(s_tmp.data, 1, KiloByte, fp);*/
+			int result = imgSize - imgPointer;
+			if(result >= KiloByte){
+				result = KiloByte;
+			}
+			else if(result < KiloByte && result > 0){
+				//result = result
+			}
+			else{
+				//result == 0
+			}
+			printf("here1 == %d\n",imgPointer);
+			memcpy(s_tmp.data,VideoImagebuffer+imgPointer, result);
+			printf("here2 == %d\n",imgPointer);
+			if(result < 0){
 				perror("file read error\n");
 				exit(1);
 			}
@@ -125,8 +150,8 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 
 			// 監控在timeout時間內，[0,socket_fd) 可不可讀
 			struct timeval timeout;
-			timeout.tv_sec = 1;
-			timeout.tv_usec = 0;
+			timeout.tv_sec = 0;
+			timeout.tv_usec = 100;
 			int ready_for_reading = select(socket_fd+1, &input_set, NULL, NULL, &timeout);
 			// select回傳-1表示error，回傳0表示timeout，回傳正數表示ready的fd數量
 			if(ready_for_reading == -1){
@@ -146,8 +171,8 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 				//只從socket讀走一個 segment 的大小(sizeof(s_tmp))
 				if(recv_packet(socket_fd, &s_tmp, &agent)){
 					if(s_tmp.head.ack == 1){//if not ack, just ignore it (wrong data)
-						printf("recv\tack\t#%d\n", s_tmp.head.seqNumber);
-						if(s_tmp.head.seqNumber == acked_seq_num + 1){//what we are waiting for
+						printf("recv\tack\t#%d\n", s_tmp.head.ackNumber);
+						if(s_tmp.head.ackNumber == acked_seq_num + 1){//what we are waiting for
 							acked_seq_num++;//已經被Acked的數量增長
 						}
 					}
