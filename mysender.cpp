@@ -81,7 +81,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 				perror("file read error\n");
 				exit(1);
 			}
-			//不應該在result == 0的時候還send
 			printf("result == %d\n",result);
 			s_tmp.head.length = result;
 			s_tmp.head.seqNumber = i;
@@ -91,7 +90,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			s_tmp.head.ack = 0;
 
 			//printf("data == %s\n",s_tmp.data);
-
+	
 			if(send_packet(socket_fd, &s_tmp, &agent)){
 				//如果 i 被迫向回跳(小於曾經到達過的最大處)，就表示正在進行retransmission
 				if(i > send_max_seq)
@@ -128,7 +127,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 
 		//Receive Ack from receiver
 		while(acked_seq_num != window_upper_bound){
-			cout << acked_seq_num << endl;
 			//假設全部都會收到並回覆ack
 			//acked_seq_num++;
 			if(last_seq != -1){//如果last_seq有反應，表示出現了沒有讀到滿的情況
