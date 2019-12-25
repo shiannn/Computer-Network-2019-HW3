@@ -43,7 +43,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	cap >> imgSender;
 	int imgSize = imgSender.total()*imgSender.elemSize();
 	int mod = (int)ceil(imgSize / (double)KiloByte);
-	printf("mod == %d\n",mod);
+	int last_remains = imgSize % KiloByte;
+	//printf("mod == %d last_remains == %d\n",mod,last_remains);
+	
 
 	printf("width==%d height==%d\n",width,height);
 	uchar VideoImagebuffer[imgSize];
@@ -159,7 +161,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			// 監控在timeout時間內，[0,socket_fd) 可不可讀
 			struct timeval timeout;
 			timeout.tv_sec = 0;
-			timeout.tv_usec = 600;
+			timeout.tv_usec = 10;
 			int ready_for_reading = select(socket_fd+1, &input_set, NULL, NULL, &timeout);
 			// select回傳-1表示error，回傳0表示timeout，回傳正數表示ready的fd數量
 			if(ready_for_reading == -1){
@@ -169,6 +171,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 			}
 			else if(ready_for_reading == 0){
 				//timeout, 處理window size
+				//一直timeout而不往下去讀
 				threshold = max(old_winsize/2, 1);
 				winsize = 1;
 				printf("time\tout\t\tthreshold = %d\n", threshold);
@@ -180,13 +183,14 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 				if(recv_packet(socket_fd, &s_tmp, &agent)){
 					if(s_tmp.head.ack == 1){//if not ack, just ignore it (wrong data)
 						printf("recv\tack\t#%d\n", s_tmp.head.ackNumber);
-						if(s_tmp.head.ackNumber == acked_seq_num + 1){//what we are waiting for
+						while(s_tmp.head.ackNumber >= acked_seq_num + 1){
+							//不能只有大一格認可
 							acked_seq_num++;//已經被Acked的數量增長
 							//被acked的部份就可以覆蓋掉了
-							int ackPointer = ((acked_seq_num-1)%1556)*KiloByte;
+							int ackPointer = ((acked_seq_num-1)%mod)*KiloByte;
 							printf("ackPointer == %d\n",ackPointer);
 							printf("acked_seq_num == %d\n",acked_seq_num);
-							if(acked_seq_num % 1556 == 0){
+							if(acked_seq_num % mod == 0){
 								printf("1556!!!\n");
 								cap >> imgSender;
 								if(imgSender.empty()){
@@ -200,9 +204,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 									}
 								}
 							}
-							else if(acked_seq_num % 1556 == 1555){
+							else if(acked_seq_num % mod == (mod-1)){
 								if(FinishFrame != 1){
-									memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, 200);
+									memcpy(VideoImagebuffer+ackPointer,imgSender.data+ackPointer, last_remains);
 								}
 							}
 							else{
@@ -211,6 +215,11 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 								}
 							}
 						}
+						/*
+						else{
+							printf("we drop ack #%d\n",s_tmp.head.ackNumber);
+						}
+						*/
 					}
 				}
 			}

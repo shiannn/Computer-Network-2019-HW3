@@ -8,7 +8,7 @@
 #include "opencv2/opencv.hpp"
 
 #define maxIpLength 100
-#define KiloByte 1000
+#define KiloByte 15000
 
 typedef struct {
 	int length;
@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct{
 	header head;
-	char data[1000];
+	char data[KiloByte];
 } segment;
 
 int max(int a, int b){

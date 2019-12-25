@@ -5,7 +5,8 @@
 //#define height 800
 //#define width 800
 
-#define MaximgSize 1555200
+//#define MaximgSize 1555200
+#define MaximgSize 6555200
 //#define height 540
 //#define width 960
 
@@ -15,6 +16,7 @@
 using namespace std;
 using namespace cv;
 
+uchar VideoImagebuffer[MaximgSize];
 int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
     // Initialize
 	if(argc != 4){
@@ -53,7 +55,6 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int imgSize;
 	//Mat imgReceiver = Mat::zeros(height,width, CV_8UC3);
 	Mat imgReceiver;
-	uchar VideoImagebuffer[MaximgSize];
 	
 	int offset = 0;
     while(1){
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 					if(offset == imgSize){
 						memcpy(imgReceiver.data,VideoImagebuffer,imgSize);
 						imshow("Video", imgReceiver);
-						waitKey(3.333);
+						waitKey(1);
 						offset = 0;
 					}
 				}

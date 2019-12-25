@@ -17,7 +17,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
+#include "Myudp_socket.h"
 
+/*
 typedef struct {
 	int length;
 	int seqNumber;
@@ -40,6 +42,7 @@ void setIP(char *dst, char *src) {
         sscanf(src, "%s", dst);
     }
 }
+*/
 
 int main(int argc, char* argv[]){
     int agentsocket, portNum, nBytes;
