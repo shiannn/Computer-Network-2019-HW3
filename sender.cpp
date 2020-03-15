@@ -29,6 +29,10 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	Mat imgSender = Mat::zeros(height,width, CV_8UC3);
 
+	int TotalFrame = int(cap.get(CV_CAP_PROP_FRAME_COUNT));
+	printf("TotalFrame == %d\n",TotalFrame);
+	//exit(0);
+
     // 建好UDP socket 並且bind 到 INADDR_ANY 上
 	int socket_fd = create_UDP_socket(SENDER_PORT);
     // 將 agent 的 ip/port/family 以及 sin_zero 設定好
@@ -45,6 +49,10 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 	int mod = (int)ceil(imgSize / (double)KiloByte);
 	int last_remains = imgSize % KiloByte;
 	//printf("mod == %d last_remains == %d\n",mod,last_remains);
+
+	int Totalsegments = TotalFrame*mod;
+	printf("Totalsegments == %d\n",Totalsegments);
+	//exit(0);
 	
 
 	printf("width==%d height==%d\n",width,height);
@@ -62,6 +70,9 @@ int main(int argc, char *argv[]){ // agent_ip, agent_port, file_path
 		//[acked_seq_num + 1, acked_seq_num + winsize] 總共 winsize 個
 		segment s_tmp;
 		for(int i = window_lower_bound; i <= window_upper_bound && !end; i++){
+			if(i > Totalsegments){
+				continue;
+			}
 			int result;
 			if(i == 1){
 				sprintf(s_tmp.data,"%d %d",width,height);
